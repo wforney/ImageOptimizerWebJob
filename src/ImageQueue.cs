@@ -1,57 +1,86 @@
 ﻿using Minimatch;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ImageOptimizerWebJob
 {
+    /// <summary>
+    /// Represents a queue of images to be processed. Implements the <see cref="Dictionary{String, DateTime}"/>
+    /// </summary>
+    /// <seealso cref="Dictionary{String, DateTime}"/>
     public class ImageQueue : Dictionary<string, DateTime>
     {
-        private static object _logRoot = new object();
+        private static readonly Lock _logRoot = new();
 
-        private FileSystemWatcher _watcher;
-        private FileHashStore _cache;
-        private Config _config;
-        private Options _matcherOptions = new Options { AllowWindowsPaths = true, IgnoreCase = true };
+        private readonly FileHashStore _cache;
+        private readonly Config _config;
+        private readonly Options _matcherOptions = new() { AllowWindowsPaths = true, IgnoreCase = true };
 
+        private FileSystemWatcher? _watcher;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageQueue"/> class.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
         public ImageQueue(Config config)
         {
-            _cache = new FileHashStore(config.CacheFilePath);
+            _cache = new FileHashStore(config.CacheFilePath ?? "");
             _config = config;
 
-            string dir = Path.GetDirectoryName(config.FilePath);
+            string dir = Path.GetDirectoryName(config.FilePath)!;
             StartListening(dir);
         }
 
+        /// <summary>
+        /// Process queue as an asynchronous operation.
+        /// </summary>
+        /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task ProcessQueueAsync()
         {
             QueueExistingFiles();
 
-            Compressor c = new Compressor();
+            Compressor c = new();
 
             while (true)
             {
-                var files = this.Where(e => e.Value < DateTime.Now.AddSeconds(-2))
-                                .Select(e => e.Key)
-                                .ToArray();
+                string[] files = [.. this.Where(e => e.Value < DateTime.Now.AddSeconds(-2)).Select(e => e.Key)];
 
                 foreach (string file in files)
                 {
-                    if (IsImageOnProbingPath(file, out var opti) && _cache.HasChangedOrIsNew(file))
+                    if (IsImageOnProbingPath(file, out Optimization? opti) && _cache.HasChangedOrIsNew(file))
                     {
-                        var result = c.CompressFile(file, opti.Lossy);
+                        CompressionResult result = c.CompressFile(file, opti.Lossy);
 
                         HandleCompressionResult(result, opti);
 
                         _cache.Save(file);
                     }
 
-                    Remove(file);
+                    _ = Remove(file);
                 }
 
                 await Task.Delay(5000);
+            }
+        }
+
+        private async void FileChanged(object sender, FileSystemEventArgs e)
+        {
+            string file = e.FullPath;
+            string ext = Path.GetExtension(file);
+
+            if (string.IsNullOrWhiteSpace(ext) || ext.Contains('~'))
+            {
+                return;
+            }
+
+            if (Defaults.Extensions.Contains(ext, StringComparer.OrdinalIgnoreCase) && !ContainsKey(file) && _cache.HasChangedOrIsNew(file))
+            {
+                this[file] = DateTime.Now;
+            }
+            else if (e.FullPath == _config.FilePath)
+            {
+                await Task.Delay(2000).ConfigureAwait(false);
+                _config.Update();
+                QueueExistingFiles();
             }
         }
 
@@ -65,28 +94,52 @@ namespace ImageOptimizerWebJob
                 File.Delete(result.ResultFileName);
             }
 
-            string dir = Path.GetDirectoryName(_config.FilePath);
+            string dir = Path.GetDirectoryName(_config.FilePath)!;
             string fileName = result.OriginalFileName.Replace(dir, string.Empty);
             double percent = Math.Max(result.Percent, 0);
 
             lock (_logRoot)
             {
-                using (var writer = new StreamWriter(_config.LogFilePath, true))
-                {
-                    writer.WriteLine($"{DateTime.UtcNow.ToString("s")};{fileName};{percent}%;{(opti.Lossy ? "lossy" : "lossless")}");
-                }
+                using StreamWriter writer = new(_config.LogFilePath!, true);
+                writer.WriteLine($"{DateTime.UtcNow:s};{fileName};{percent}%;{(opti.Lossy ? "lossy" : "lossless")}");
             }
+        }
+
+        private bool IsImageOnProbingPath(string file, [NotNullWhen(true)] out Optimization? optimization)
+        {
+            optimization = null;
+
+            foreach (Optimization opti in _config.Optimizations)
+            {
+                optimization = opti;
+
+                bool isIncluded = opti.Includes.Any(pattern => Minimatcher.Check(file, pattern, _matcherOptions));
+                if (!isIncluded)
+                {
+                    continue;
+                }
+
+                bool isExcluded = opti.Excludes.Any(pattern => Minimatcher.Check(file, pattern, _matcherOptions));
+                if (isExcluded)
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private void QueueExistingFiles()
         {
-            string dir = Path.GetDirectoryName(_config.FilePath);
+            string dir = Path.GetDirectoryName(_config.FilePath)!;
 
             foreach (string ext in Defaults.Extensions)
             {
-                var images = Directory.EnumerateFiles(dir, "*" + ext, SearchOption.AllDirectories);
+                IEnumerable<string> images = Directory.EnumerateFiles(dir, $"*{ext}", SearchOption.AllDirectories);
 
-                foreach (var image in images)
+                foreach (string image in images)
                 {
                     this[image] = DateTime.Now;
                 }
@@ -100,50 +153,6 @@ namespace ImageOptimizerWebJob
             _watcher.IncludeSubdirectories = true;
             _watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.CreationTime;
             _watcher.EnableRaisingEvents = true;
-        }
-
-        private bool IsImageOnProbingPath(string file, out Optimization optimization)
-        {
-            optimization = null;
-
-            foreach (var opti in _config.Optimizations)
-            {
-                optimization = opti;
-
-                bool isIncluded = opti.Includes.Any(pattern => Minimatcher.Check(file, pattern, _matcherOptions));
-
-                if (!isIncluded)
-                    continue;
-
-                bool isExcluded = opti.Excludes.Any(pattern => Minimatcher.Check(file, pattern, _matcherOptions));
-
-                if (isExcluded)
-                    continue;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private async void FileChanged(object sender, FileSystemEventArgs e)
-        {
-            string file = e.FullPath;
-            string ext = Path.GetExtension(file);
-
-            if (string.IsNullOrWhiteSpace(ext) || ext.Contains('~'))
-                return;
-
-            if (Defaults.Extensions.Contains(ext, StringComparer.OrdinalIgnoreCase) && !ContainsKey(file) && _cache.HasChangedOrIsNew(file))
-            {
-                this[file] = DateTime.Now;
-            }
-            else if (e.FullPath == _config.FilePath)
-            {
-                await Task.Delay(2000).ConfigureAwait(false);
-                _config.Update();
-                QueueExistingFiles();
-            }
         }
     }
 }

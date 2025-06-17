@@ -1,36 +1,27 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using ImageOptimizerWebJob;
 
-namespace ImageOptimizerWebJob
+string? basePath = Defaults.FolderToWatch;
+string? logFilePath = Defaults.CacheFilePath;
+
+if (!(basePath?.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ?? false))
 {
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            string basePath = Defaults.FolderToWatch;
-            string logFilePath = Defaults.CacheFilePath;
-
-            if (!basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal))
-                throw new Exception("The folder MUST end with a backslash");
-
-            if (!Directory.Exists(basePath))
-                basePath = "./";
-
-            if (!Directory.Exists(Path.GetDirectoryName(logFilePath)))
-                logFilePath = "log.cache";
-
-            var options = Config.FromPath(basePath, logFilePath);
-            var queue = new ImageQueue(options);
-
-            Task.Run(async () =>
-            {
-                Console.WriteLine("Image Optimizer started");
-                Console.WriteLine($"Watching {new DirectoryInfo(basePath).FullName}");
-
-                await queue.ProcessQueueAsync();
-
-            }).GetAwaiter().GetResult();
-        }
-    }
+    throw new Exception("The folder MUST end with a backslash");
 }
+
+if (!Directory.Exists(basePath))
+{
+    basePath = "./";
+}
+
+if (!Directory.Exists(Path.GetDirectoryName(logFilePath)))
+{
+    logFilePath = "log.cache";
+}
+
+Config options = Config.FromPath(basePath, logFilePath!);
+ImageQueue queue = new(options);
+
+Console.WriteLine("Image Optimizer started");
+Console.WriteLine($"Watching {new DirectoryInfo(basePath).FullName}");
+
+await queue.ProcessQueueAsync();

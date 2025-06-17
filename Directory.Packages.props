@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <NoWarn>$(NoWarn);NU1507</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.SystemWebAdapters.FrameworkServices" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.NETCore.Windows.ApiSets" Version="1.0.1" />
+    <PackageVersion Include="Minimatch" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SystemWebAdapters.CoreServices" Version="2.0.0" />
+    <PackageVersion Include="NETStandard.Library" Version="2.0.3" />
+    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="9.0.6" />
+    <PackageVersion Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+    <PackageVersion Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+</Project>

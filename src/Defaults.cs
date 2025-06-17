@@ -1,15 +1,39 @@
-﻿using System.Collections.Generic;
-using System.Configuration;
+﻿using System.Configuration;
 
-namespace ImageOptimizerWebJob
+namespace ImageOptimizerWebJob;
+
+/// <summary>
+/// Represents the default settings for the image optimizer web job.
+/// </summary>
+public static class Defaults
 {
-    public static class Defaults
-    {
-        public static readonly string ConfigFileName = ConfigurationManager.AppSettings.Get("configFileName");
-        public static readonly string CacheFilePath = ConfigurationManager.AppSettings.Get("logfile");
-        public static readonly string FolderToWatch = ConfigurationManager.AppSettings.Get("folderToWatch");
-        public static readonly string[] Extensions  = { ".jpg", ".jpeg", ".gif", ".png" };
+    /// <summary>
+    /// The cache file path
+    /// </summary>
+    public static readonly string? CacheFilePath = ConfigurationManager.AppSettings.Get("logfile");
 
-        public static readonly List<string> Includes = new List<string> { FolderToWatch    };
-        public static readonly List<string> Excludes = new List<string> { "node_modules", "bower_components", "jspm_packages" };    }
+    /// <summary>
+    /// The configuration file name
+    /// </summary>
+    public static readonly string? ConfigFileName = ConfigurationManager.AppSettings.Get("configFileName");
+
+    /// <summary>
+    /// The folders to exclude from processing
+    /// </summary>
+    public static readonly List<string> Excludes = ["node_modules", "bower_components", "jspm_packages"];
+
+    /// <summary>
+    /// The file extensions to process
+    /// </summary>
+    public static readonly string[] Extensions = [".jpg", ".jpeg", ".gif", ".png"];
+
+    /// <summary>
+    /// The folder to watch
+    /// </summary>
+    public static readonly string? FolderToWatch = ConfigurationManager.AppSettings.Get("folderToWatch");
+
+    /// <summary>
+    /// The folders to include in processing
+    /// </summary>
+    public static readonly List<string> Includes = [FolderToWatch];
 }
