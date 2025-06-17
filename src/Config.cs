@@ -76,7 +76,8 @@ public class Config
             Console.WriteLine($"Read config from {FilePath}");
 
             using StreamReader reader = new(FilePath);
-            Config? options = JsonSerializer.Deserialize<Config>(reader.ReadToEnd());
+            string jsonContent = reader.ReadToEnd();
+            Config? options = JsonSerializer.Deserialize(jsonContent, ConfigJsonContext.Default.Config);
             Optimizations = options?.Optimizations ?? [];
         }
         else
@@ -114,4 +115,15 @@ public class Config
         CacheFilePath = new FileInfo(CacheFilePath ?? "").FullName;
         LogFilePath = Path.ChangeExtension(CacheFilePath, ".log");
     }
+}
+
+/// <summary>
+/// Represents the JSON serialization context for the <see cref="Config"/> class. Implements the
+/// <see cref="JsonSerializerContext"/> Implements the <see cref="System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver"/>
+/// </summary>
+/// <seealso cref="JsonSerializerContext"/>
+/// <seealso cref="System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver"/>
+[JsonSerializable(typeof(Config))]
+public partial class ConfigJsonContext : JsonSerializerContext
+{
 }

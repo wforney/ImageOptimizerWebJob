@@ -13,7 +13,7 @@ public class Compressor
     /// <summary>
     /// Initializes a new instance of the <see cref="Compressor"/> class.
     /// </summary>
-    public Compressor() => _cwd = Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location)!, @"Tools\");
+    public Compressor() => _cwd = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory)!, @"Tools\");
 
     /// <summary>
     /// Compresses the file.

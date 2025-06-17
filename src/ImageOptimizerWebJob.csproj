@@ -1,23 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Authors>Mads Kristensen</Authors>
+    <Copyright>Copyright Mads Kristensen</Copyright>
+    <Description>Optimizes images on Azure App Service</Description>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IncludeSymbols>True</IncludeSymbols>
+    <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
+    <PackageIcon>logo64x64.png</PackageIcon>
+    <PackageId>Azure.ImageOptimizer</PackageId>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/madskristensen/ImageOptimizerWebJob</PackageProjectUrl>
+    <PackageTags>Image Optimizer;compression;optimization;png;jpg;gif</PackageTags>
     <PostBuildEvent>cd "$(SolutionDir)build"
 build.cmd $(ConfigurationName)</PostBuildEvent>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <Title>$(AssemblyName)</Title>
-    <Copyright>Copyright © 2017</Copyright>
-    <IncludeSymbols>True</IncludeSymbols>
+    <Product>Azure Image Optimizer</Product>
+    <PublishAot>True</PublishAot>
+    <PublishTrimmed>True</PublishTrimmed>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TargetFramework>net9.0</TargetFramework>
+    <Title>Azure Image Optimizer</Title>
+    <Version>1.1.0.39</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Minimatch" />
@@ -41,5 +47,15 @@ build.cmd $(ConfigurationName)</PostBuildEvent>
     <Content Include="Tools\libjpeg-62.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\art\logo64x64.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>
